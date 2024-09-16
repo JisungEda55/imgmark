@@ -132,17 +132,17 @@
             // 캔버스 초기화
             ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
 
-            // 배경 그리기
+            // 배경 그리기 (배경 레이어)
             ctx.fillStyle = '#f2f2f7';
             ctx.fillRect(0, 0, imageCanvas.width, imageCanvas.height);
 
-            // 이미지 그리기
+            // 추가 이미지 그리기 (추가이미지 레이어)
             let scale = Math.min(
                 imageCanvas.width / uploadedImage.width,
-                imageCanvas.height / uploadedImage.height
+                (imageCanvas.height - 200) / uploadedImage.height // 푸터 공간 확보를 위해 높이 조정
             );
             let x = (imageCanvas.width / 2) - (uploadedImage.width / 2) * scale;
-            let y = (imageCanvas.height / 2) - (uploadedImage.height / 2) * scale;
+            let y = ((imageCanvas.height - 200) / 2) - (uploadedImage.height / 2) * scale;
 
             ctx.drawImage(
                 uploadedImage,
@@ -155,6 +155,10 @@
                 uploadedImage.width * scale,
                 uploadedImage.height * scale
             );
+
+            // 푸터 그리기 (푸터 레이어)
+            ctx.fillStyle = '#f2f2f7'; // 푸터 배경색
+            ctx.fillRect(0, imageCanvas.height - 300, imageCanvas.width, 3000);
 
             // 워터마크 텍스트 적용
             document.fonts.load('100px "LINESeedKR-Bd"').then(function() {
