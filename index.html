@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>ImgMark</title>
+    <style>
+        /* 폰트 로드 */
+        @font-face {
+            font-family: 'LINESeedKR-Bd';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Bd.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        /* 모든 요소에 폰트 적용 */
+        body, h1, input, button {
+            font-family: 'LINESeedKR-Bd', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #F5F5F7;
+            color: #1D1D1F;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"], input[type="text"], button {
+            width: 300px;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            font-size: 16px;
+            border: 1px solid #CED0D4;
+            border-radius: 8px;
+            background-color: #FFFFFF;
+        }
+
+        input[type="text"] {
+            border: 1px solid #CED0D4;
+        }
+
+        button {
+            background-color: #0071E3;
+            color: #FFFFFF;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #005BB5;
+        }
+
+        #imageCanvas {
+            border: 1px solid #CED0D4;
+            border-radius: 8px;
+            max-width: 90%;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            input[type="file"], input[type="text"], button {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>ImgMark</h1>
+    <div id="controls">
+        <input type="file" id="imageUpload" accept="image/*"><br>
+        <input type="text" id="watermarkText" placeholder="워터마크 텍스트 입력"><br>
+        <button id="applyWatermark">워터마크 적용</button><br>
+    </div>
+    <canvas id="imageCanvas" width="3000" height="4000"></canvas><br>
+    <button id="saveImage">워터마크 이미지 저장</button>
+
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const imageCanvas = document.getElementById('imageCanvas');
+        const applyWatermark = document.getElementById('applyWatermark');
+        const saveImage = document.getElementById('saveImage');
+        const watermarkTextInput = document.getElementById('watermarkText');
+        const ctx = imageCanvas.getContext('2d');
+        let uploadedImage = null;
+
+        // 캔버스 크기를 3000x4000 픽셀로 설정
+        imageCanvas.width = 3000;
+        imageCanvas.height = 4000;
+
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                uploadedImage = new Image();
+                uploadedImage.onload = function() {
+                    drawImageAndWatermark();
+                }
+                uploadedImage.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        applyWatermark.addEventListener('click', function() {
+            if (!uploadedImage) {
+                alert('먼저 이미지를 업로드해주세요.');
+                return;
+            }
+            drawImageAndWatermark();
+        });
+
+        function drawImageAndWatermark() {
+            // 캔버스 초기화
+            ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+
+            // 배경 그리기
+            ctx.fillStyle = '#f2f2f7';
+            ctx.fillRect(0, 0, imageCanvas.width, imageCanvas.height);
+
+            // 이미지 그리기
+            let scale = Math.min(
+                imageCanvas.width / uploadedImage.width,
+                imageCanvas.height / uploadedImage.height
+            );
+            let x = (imageCanvas.width / 2) - (uploadedImage.width / 2) * scale;
+            let y = (imageCanvas.height / 2) - (uploadedImage.height / 2) * scale;
+
+            ctx.drawImage(
+                uploadedImage,
+                0,
+                0,
+                uploadedImage.width,
+                uploadedImage.height,
+                x,
+                y,
+                uploadedImage.width * scale,
+                uploadedImage.height * scale
+            );
+
+            // 워터마크 텍스트 적용
+            document.fonts.load('100px "LINESeedKR-Bd"').then(function() {
+                const watermarkText = watermarkTextInput.value || 'Your Watermark';
+                ctx.font = '100px "LINESeedKR-Bd"';
+                ctx.fillStyle = '#000000';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(watermarkText, imageCanvas.width - 50, imageCanvas.height - 50);
+            }).catch(function() {
+                // 폰트 로드 실패 시 기본 폰트 사용
+                const watermarkText = watermarkTextInput.value || 'Your Watermark';
+                ctx.font = '100px Arial';
+                ctx.fillStyle = '#000000';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(watermarkText, imageCanvas.width - 50, imageCanvas.height - 50);
+            });
+        }
+
+        saveImage.addEventListener('click', function() {
+            if (!uploadedImage) {
+                alert('이미지를 업로드하고 워터마크를 적용해주세요.');
+                return;
+            }
+            imageCanvas.toBlob(function(blob) {
+                const link = document.createElement('a');
+                link.download = 'watermarked_image.png';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+            }, 'image/png');
+        });
+    </script>
+</body>
+</html>
